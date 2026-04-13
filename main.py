@@ -9,7 +9,7 @@ bot = telebot.TeleBot(TOKEN)
 DATA_FILE = "users.json"
 
 # =========================
-# LOAD DATA
+# LOAD & SAVE
 # =========================
 def load_users():
     try:
@@ -18,15 +18,12 @@ def load_users():
     except:
         return {}
 
-# =========================
-# SAVE DATA
-# =========================
 def save_users(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f)
 
 # =========================
-# MENU KEYBOARD
+# KEYBOARD
 # =========================
 def menu_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -41,7 +38,7 @@ def menu_keyboard():
     return markup
 
 # =========================
-# START COMMAND
+# START
 # =========================
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -73,26 +70,35 @@ def menu(message):
     )
 
 # =========================
-# HANDLE BUTTON CLICK
+# HANDLE BUTTON
 # =========================
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     text = message.text
 
     if text == "📋 Menu Utama":
-        bot.send_message(message.chat.id, "Ini menu utama kamu 😘")
+        bot.send_message(message.chat.id, "Ini Menu Utama kamu 😘")
 
     elif text == "🎁 Claim Saldo":
         users = load_users()
         user_id = str(message.from_user.id)
 
-        users[user_id]["saldo"] += 10
+        users[user_id]["saldo"] += 1000
         save_users(users)
 
-        bot.send_message(message.chat.id, "Saldo kamu nambah 10 😘")
+        bot.send_message(message.chat.id, "Saldo kamu bertambah Rp 1000 💰")
 
     elif text == "👑 Panel Admin":
-        bot.send_message(message.chat.id, "Menu admin (coming soon 😏)")
+        bot.send_message(message.chat.id, "Kamu admin ya? 😏")
 
+    elif text == "/saldo":
+        users = load_users()
+        user_id = str(message.from_user.id)
+
+        saldo = users.get(user_id, {}).get("saldo", 0)
+        bot.send_message(message.chat.id, f"Saldo kamu: Rp {saldo}")
+
+# =========================
+# RUN BOT
 # =========================
 bot.infinity_polling()

@@ -1,11 +1,16 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import telebot
+import os
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Halo sayang 😘")
+TOKEN = os.getenv("BOT_TOKEN")
+bot = telebot.TeleBot(TOKEN)
 
-app = ApplicationBuilder().token("8761594910:AAG984I89hleez6DUQ4DK_dbOYrsMeL7FkI").build()
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.reply_to(message, "Halo sayang 😘 bot kamu sudah hidup!")
 
-app.add_handler(CommandHandler("start", start))
+@bot.message_handler(func=lambda message: True)
+def echo(message):
+    bot.reply_to(message, message.text)
 
-app.run_polling()
+print("Bot jalan...")
+bot.infinity_polling()

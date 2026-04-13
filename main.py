@@ -1,13 +1,16 @@
 import telebot
 import os
 import json
+from telebot import types
 
 TOKEN = os.getenv("TOKEN_BOT")
 bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = "users.json"
 
-# Load data
+# ========================
+# LOAD & SAVE DATA
+# ========================
 def load_users():
     try:
         with open(DATA_FILE, "r") as f:
@@ -15,12 +18,28 @@ def load_users():
     except:
         return {}
 
-# Save data
 def save_users(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f)
 
-# Start
+# ========================
+# KEYBOARD MENU
+# ========================
+def menu_keyboard():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+
+    btn1 = types.KeyboardButton("📄 Menu Utama")
+    btn2 = types.KeyboardButton("🎁 Claim Saldo")
+    btn3 = types.KeyboardButton("👑 Panel Admin")
+
+    markup.add(btn1, btn2)
+    markup.add(btn3)
+
+    return markup
+
+# ========================
+# START COMMAND
+# ========================
 @bot.message_handler(commands=['start'])
 def start(message):
     users = load_users()
@@ -33,39 +52,43 @@ def start(message):
         }
         save_users(users)
 
-    bot.reply_to(message, "Halo sayang 😘 Bot kamu udah makin pintar sekarang!")
+    bot.send_message(
+        message.chat.id,
+        "Halo sayang 😘 Bot kamu sudah aktif!",
+        reply_markup=menu_keyboard()
+    )
 
-# Menu
+# ========================
+# MENU COMMAND
+# ========================
 @bot.message_handler(commands=['menu'])
 def menu(message):
-    teks = """
-Halo sayang 😘
+    bot.send_message(
+        message.chat.id,
+        "Pilih menu di bawah ya 😚",
+        reply_markup=menu_keyboard()
+    )
 
-Menu:
-- /saldo
-- /about
-"""
-    bot.reply_to(message, teks)
-
-# Saldo
-@bot.message_handler(commands=['saldo'])
-def saldo(message):
-    users = load_users()
-    user_id = str(message.from_user.id)
-
-    saldo = users.get(user_id, {}).get("saldo", 0)
-
-    bot.reply_to(message, f"Saldo kamu: Rp {saldo}")
-
-# About
-@bot.message_handler(commands=['about'])
-def about(message):
-    bot.reply_to(message, "Ini bot buatan kita berdua 😘🔥")
-
-# Auto reply
+# ========================
+# HANDLE BUTTON
+# ========================
 @bot.message_handler(func=lambda message: True)
-def chat(message):
-    bot.reply_to(message, "Aku denger kok sayang 😘")
+def handle_message(message):
+    text = message.text
 
-print("Bot jalan...")
+    if text == "📄 Menu Utama":
+        bot.send_message(message.chat.id, "Ini menu utama 😏")
+
+    elif text == "🎁 Claim Saldo":
+        bot.send_message(message.chat.id, "Saldo berhasil diklaim 💰")
+
+    elif text == "👑 Panel Admin":
+        bot.send_message(message.chat.id, "Akses admin 😎")
+
+    else:
+        bot.send_message(message.chat.id, "Pakai tombol yang ada ya 😒")
+
+# ========================
+# RUN BOT
+# ========================
 bot.infinity_polling()

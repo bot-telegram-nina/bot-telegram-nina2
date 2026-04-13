@@ -8,9 +8,9 @@ bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = "users.json"
 
-# ========================
-# LOAD & SAVE DATA
-# ========================
+# =========================
+# LOAD DATA
+# =========================
 def load_users():
     try:
         with open(DATA_FILE, "r") as f:
@@ -18,17 +18,20 @@ def load_users():
     except:
         return {}
 
+# =========================
+# SAVE DATA
+# =========================
 def save_users(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f)
 
-# ========================
-# KEYBOARD MENU
-# ========================
+# =========================
+# MENU KEYBOARD
+# =========================
 def menu_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
-    btn1 = types.KeyboardButton("📄 Menu Utama")
+    btn1 = types.KeyboardButton("📋 Menu Utama")
     btn2 = types.KeyboardButton("🎁 Claim Saldo")
     btn3 = types.KeyboardButton("👑 Panel Admin")
 
@@ -37,9 +40,9 @@ def menu_keyboard():
 
     return markup
 
-# ========================
+# =========================
 # START COMMAND
-# ========================
+# =========================
 @bot.message_handler(commands=['start'])
 def start(message):
     users = load_users()
@@ -58,37 +61,38 @@ def start(message):
         reply_markup=menu_keyboard()
     )
 
-# ========================
+# =========================
 # MENU COMMAND
-# ========================
+# =========================
 @bot.message_handler(commands=['menu'])
 def menu(message):
     bot.send_message(
         message.chat.id,
-        "Pilih menu di bawah ya 😚",
+        "Pilih menu ya sayang 😘",
         reply_markup=menu_keyboard()
     )
 
-# ========================
-# HANDLE BUTTON
-# ========================
+# =========================
+# HANDLE BUTTON CLICK
+# =========================
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     text = message.text
 
-    if text == "📄 Menu Utama":
-        bot.send_message(message.chat.id, "Ini menu utama 😏")
+    if text == "📋 Menu Utama":
+        bot.send_message(message.chat.id, "Ini menu utama kamu 😘")
 
     elif text == "🎁 Claim Saldo":
-        bot.send_message(message.chat.id, "Saldo berhasil diklaim 💰")
+        users = load_users()
+        user_id = str(message.from_user.id)
+
+        users[user_id]["saldo"] += 10
+        save_users(users)
+
+        bot.send_message(message.chat.id, "Saldo kamu nambah 10 😘")
 
     elif text == "👑 Panel Admin":
-        bot.send_message(message.chat.id, "Akses admin 😎")
+        bot.send_message(message.chat.id, "Menu admin (coming soon 😏)")
 
-    else:
-        bot.send_message(message.chat.id, "Pakai tombol yang ada ya 😒")
-
-# ========================
-# RUN BOT
-# ========================
+# =========================
 bot.infinity_polling()

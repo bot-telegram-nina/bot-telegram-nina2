@@ -1,15 +1,15 @@
 import telebot
 import os
 
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("TOKEN_BOT")
 bot = telebot.TeleBot(TOKEN)
 
 @bot.message_handler(commands=['start'])
-def start(message):
-    bot.reply_to(message, "Halo sayang 😘 bot kamu sudah hidup!")
+def awal(message):
+    bot.reply_to(message, "Halo sayang 😘 bot aktif nih")
 
 @bot.message_handler(func=lambda message: True)
-def echo(message):
+def gema(message):
     bot.reply_to(message, message.text)
 
 print("Bot jalan...")

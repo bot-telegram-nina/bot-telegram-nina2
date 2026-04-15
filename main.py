@@ -24,17 +24,9 @@ def save_users(data):
 # ================= KEYBOARD =================
 def menu_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-
-    btn1 = types.KeyboardButton("📄 Menu Utama")
-    btn2 = types.KeyboardButton("🎁 Claim Saldo")
-    btn3 = types.KeyboardButton("💰 Saldo")
-    btn4 = types.KeyboardButton("💸 Deposit")
-    btn5 = types.KeyboardButton("👑 Panel Admin")
-
-    markup.add(btn1, btn2)
-    markup.add(btn3, btn4)
-    markup.add(btn5)
-
+    markup.add("📋 Menu Utama", "🎁 Claim Saldo")
+    markup.add("💰 Saldo", "💸 Deposit")
+    markup.add("👑 Panel Admin")
     return markup
 
 # ================= START =================
@@ -53,24 +45,16 @@ def start(message):
 
     bot.send_message(
         message.chat.id,
-        "Halo sayang 😘 Bot kamu sudah aktif!",
+        "Halo sayang 😘 Bot kamu sudah aktif",
         reply_markup=menu_keyboard()
     )
 
     menu(message)
 
-# ================= MENU FUNCTION =================
+# ================= MENU =================
 def menu(message):
     users = load_users()
     user_id = str(message.from_user.id)
-
-    if user_id not in users:
-        users[user_id] = {
-            "username": message.from_user.username,
-            "saldo": 0,
-            "last_claim": 0
-        }
-        save_users(users)
 
     username = users[user_id].get("username") or "-"
     nama = message.from_user.first_name
@@ -88,7 +72,7 @@ Halo {nama} 👋
 💰 Saldo : Rp {saldo}
 📊 Total User : {total_user}
 
-—————————————
+────────────
 Silakan pilih menu di bawah ya 😘
 """
 
@@ -99,10 +83,10 @@ Silakan pilih menu di bawah ya 😘
         reply_markup=menu_keyboard()
     )
 
-# ================= ADD SALDO (ADMIN) =================
+# ================= ADMIN =================
 @bot.message_handler(commands=['addsaldo'])
 def add_saldo(message):
-    ADMIN_ID = 6509182985
+    ADMIN_ID = 6509182985  # ganti kalau perlu
 
     if message.from_user.id != ADMIN_ID:
         bot.reply_to(message, "❌ Kamu bukan admin")
@@ -134,11 +118,6 @@ def add_saldo(message):
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     text = message.text.strip()
-
-    # biar command gak ganggu
-    if text.startswith("/"):
-        return
-
     users = load_users()
     user_id = str(message.from_user.id)
 
@@ -150,31 +129,12 @@ def handle_message(message):
         }
         save_users(users)
 
-    # ===== MENU =====
-    if "Menu Utama" in text:
+    # MENU
+    if text == "📋 Menu Utama":
         menu(message)
 
-    # ===== DEPOSIT =====
-    elif "Deposit" in text:
-        bot.send_message(
-            message.chat.id,
-            """
-💸 *DEPOSIT SALDO*
-
-Silakan transfer ke:
-
-🏦 DANA : 08xxxxxxxxxx
-🏦 OVO  : 08xxxxxxxxxx
-
-📌 Minimal deposit: Rp 5.000
-
-Setelah transfer, kirim bukti ke admin ya 😘
-""",
-            parse_mode="Markdown"
-        )
-
-    # ===== CLAIM =====
-    elif "Claim Saldo" in text:
+    # CLAIM
+    elif text == "🎁 Claim Saldo":
         now = int(time.time())
         last_claim = users[user_id].get("last_claim", 0)
 
@@ -201,20 +161,30 @@ Setelah transfer, kirim bukti ke admin ya 😘
 
         menu(message)
 
-    # ===== SALDO =====
-    elif "Saldo" in text:
+    # SALDO
+    elif text == "💰 Saldo":
         saldo = users[user_id].get("saldo", 0)
-
         bot.send_message(
             message.chat.id,
             f"💰 Saldo kamu: Rp {saldo}"
         )
 
-    # ===== ADMIN PANEL =====
-    elif "Panel Admin" in text:
+    # DEPOSIT
+    elif text == "💸 Deposit":
         bot.send_message(
             message.chat.id,
-            "👑 Kamu admin ya 😏"
+            """💸 *DEPOSIT SALDO*
+
+Silakan transfer ke:
+
+🏦 DANA : 08xxxxxxxxxx
+🏦 OVO  : 08xxxxxxxxxx
+
+📌 Minimal deposit: Rp 5.000
+
+Setelah transfer, kirim bukti ke admin ya 😘
+""",
+            parse_mode="Markdown"
         )
 
 # ================= RUN =================

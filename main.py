@@ -24,14 +24,16 @@ def save_users(data):
 # ================= KEYBOARD =================
 def menu_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn1 = types.KeyboardButton("📋 Menu Utama")
+
+    btn1 = types.KeyboardButton("📄 Menu Utama")
     btn2 = types.KeyboardButton("🎁 Claim Saldo")
     btn3 = types.KeyboardButton("💰 Saldo")
-    btn4 = types.KeyboardButton("👑 Panel Admin")
+    btn4 = types.KeyboardButton("💸 Deposit")
+    btn5 = types.KeyboardButton("👑 Panel Admin")
 
     markup.add(btn1, btn2)
-    markup.add(btn3)
-    markup.add(btn4)
+    markup.add(btn3, btn4)
+    markup.add(btn5)
 
     return markup
 
@@ -57,12 +59,11 @@ def start(message):
 
     menu(message)
 
-# ================= MENU =================
+# ================= MENU FUNCTION =================
 def menu(message):
     users = load_users()
     user_id = str(message.from_user.id)
 
-    # 🔥 FIX USER AUTO CREATE
     if user_id not in users:
         users[user_id] = {
             "username": message.from_user.username,
@@ -87,7 +88,7 @@ Halo {nama} 👋
 💰 Saldo : Rp {saldo}
 📊 Total User : {total_user}
 
-━━━━━━━━━━━━━━
+—————————————
 Silakan pilih menu di bawah ya 😘
 """
 
@@ -98,14 +99,49 @@ Silakan pilih menu di bawah ya 😘
         reply_markup=menu_keyboard()
     )
 
+# ================= ADD SALDO (ADMIN) =================
+@bot.message_handler(commands=['addsaldo'])
+def add_saldo(message):
+    ADMIN_ID = 6509182985
+
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "❌ Kamu bukan admin")
+        return
+
+    try:
+        _, target_id, jumlah = message.text.split()
+
+        users = load_users()
+
+        if target_id not in users:
+            bot.reply_to(message, "User tidak ditemukan")
+            return
+
+        users[target_id]["saldo"] += int(jumlah)
+        save_users(users)
+
+        bot.reply_to(message, f"✅ Berhasil tambah saldo Rp {jumlah}")
+
+        bot.send_message(
+            target_id,
+            f"💰 Deposit berhasil!\nSaldo kamu sekarang: Rp {users[target_id]['saldo']}"
+        )
+
+    except:
+        bot.reply_to(message, "Format salah!\nContoh: /addsaldo 123456789 10000")
+
 # ================= HANDLE BUTTON =================
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
-    text = message.text
+    text = message.text.strip()
+
+    # biar command gak ganggu
+    if text.startswith("/"):
+        return
+
     users = load_users()
     user_id = str(message.from_user.id)
 
-    # pastikan user ada
     if user_id not in users:
         users[user_id] = {
             "username": message.from_user.username,
@@ -115,11 +151,30 @@ def handle_message(message):
         save_users(users)
 
     # ===== MENU =====
-    if text == "📋 Menu Utama":
+    if "Menu Utama" in text:
         menu(message)
 
+    # ===== DEPOSIT =====
+    elif "Deposit" in text:
+        bot.send_message(
+            message.chat.id,
+            """
+💸 *DEPOSIT SALDO*
+
+Silakan transfer ke:
+
+🏦 DANA : 08xxxxxxxxxx
+🏦 OVO  : 08xxxxxxxxxx
+
+📌 Minimal deposit: Rp 5.000
+
+Setelah transfer, kirim bukti ke admin ya 😘
+""",
+            parse_mode="Markdown"
+        )
+
     # ===== CLAIM =====
-    elif text == "🎁 Claim Saldo":
+    elif "Claim Saldo" in text:
         now = int(time.time())
         last_claim = users[user_id].get("last_claim", 0)
 
@@ -135,7 +190,6 @@ def handle_message(message):
             return
 
         reward = 200
-
         users[user_id]["saldo"] += reward
         users[user_id]["last_claim"] = now
         save_users(users)
@@ -147,8 +201,8 @@ def handle_message(message):
 
         menu(message)
 
-    # ===== CEK SALDO =====
-    elif text == "💰 Saldo":
+    # ===== SALDO =====
+    elif "Saldo" in text:
         saldo = users[user_id].get("saldo", 0)
 
         bot.send_message(
@@ -156,11 +210,11 @@ def handle_message(message):
             f"💰 Saldo kamu: Rp {saldo}"
         )
 
-    # ===== ADMIN =====
-    elif text == "👑 Panel Admin":
+    # ===== ADMIN PANEL =====
+    elif "Panel Admin" in text:
         bot.send_message(
             message.chat.id,
-            "Kamu admin ya 😏"
+            "👑 Kamu admin ya 😏"
         )
 
 # ================= RUN =================

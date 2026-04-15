@@ -136,6 +136,7 @@ def handle_message(message):
             message.chat.id,
             f"🎁 Kamu dapat {reward} saldo! 💰"
         )
+        menu(message)
 
     # ================= CEK SALDO =================
     elif text == "💰 Saldo":

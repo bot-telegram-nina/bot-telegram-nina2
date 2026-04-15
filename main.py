@@ -1,6 +1,7 @@
 import telebot
 import os
 import json
+import time
 from telebot import types
 
 TOKEN = os.getenv("TOKEN_BOT")
@@ -8,9 +9,9 @@ bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = "users.json"
 
-# =========================
+# ================================
 # LOAD & SAVE
-# =========================
+# ================================
 def load_users():
     try:
         with open(DATA_FILE, "r") as f:
@@ -22,9 +23,9 @@ def save_users(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f)
 
-# =========================
+# ================================
 # KEYBOARD
-# =========================
+# ================================
 def menu_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
@@ -37,9 +38,9 @@ def menu_keyboard():
 
     return markup
 
-# =========================
+# ================================
 # START
-# =========================
+# ================================
 @bot.message_handler(commands=['start'])
 def start(message):
     users = load_users()
@@ -48,7 +49,8 @@ def start(message):
     if user_id not in users:
         users[user_id] = {
             "username": message.from_user.username,
-            "saldo": 0
+            "saldo": 0,
+            "last_claim": 0
         }
         save_users(users)
 
@@ -58,9 +60,9 @@ def start(message):
         reply_markup=menu_keyboard()
     )
 
-# =========================
+# ================================
 # MENU COMMAND
-# =========================
+# ================================
 @bot.message_handler(commands=['menu'])
 def menu(message):
     bot.send_message(
@@ -69,9 +71,9 @@ def menu(message):
         reply_markup=menu_keyboard()
     )
 
-# =========================
+# ================================
 # HANDLE BUTTON
-# =========================
+# ================================
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     text = message.text
@@ -82,23 +84,47 @@ def handle_message(message):
     elif text == "🎁 Claim Saldo":
         users = load_users()
         user_id = str(message.from_user.id)
+        now = int(time.time())
 
-        users[user_id]["saldo"] += 1000
+        last_claim = users.get(user_id, {}).get("last_claim", 0)
+
+        if now - last_claim < 86400:
+            sisa = 86400 - (now - last_claim)
+            jam = sisa // 3600
+            menit = (sisa % 3600) // 60
+
+            bot.send_message(
+                message.chat.id,
+                f"⏳ Tunggu ya {jam} jam {menit} menit lagi 😘"
+            )
+            return
+
+        reward = 200
+
+        users[user_id]["saldo"] += reward
+        users[user_id]["last_claim"] = now
         save_users(users)
 
-        bot.send_message(message.chat.id, "Saldo kamu bertambah Rp 1000 💰")
+        bot.send_message(
+            message.chat.id,
+            f"🎁 Kamu dapat {reward} saldo! 💰"
+        )
 
     elif text == "👑 Panel Admin":
-        bot.send_message(message.chat.id, "Kamu admin ya? 😏")
+        bot.send_message(message.chat.id, "Kamu admin ya 😏")
 
     elif text == "/saldo":
         users = load_users()
         user_id = str(message.from_user.id)
 
         saldo = users.get(user_id, {}).get("saldo", 0)
-        bot.send_message(message.chat.id, f"Saldo kamu: Rp {saldo}")
 
-# =========================
+        bot.send_message(
+            message.chat.id,
+            f"Saldo kamu: Rp {saldo}"
+        )
+
+# ================================
 # RUN BOT
-# =========================
+# ================================
 bot.infinity_polling()

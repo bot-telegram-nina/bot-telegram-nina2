@@ -117,6 +117,8 @@ def add_saldo(message):
 # ================= HANDLE BUTTON =================
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
+    if "history" not in users[user_id]:
+    users[user_id]["history"] = []
     text = message.text.strip()
     users = load_users()
     user_id = str(message.from_user.id)
@@ -152,6 +154,8 @@ def handle_message(message):
         reward = 200
         users[user_id]["saldo"] += reward
         users[user_id]["last_claim"] = now
+        waktu = datetime.datetime.now().strftime("%d/%m %H:%M")
+users[user_id]["history"].append(f"[{waktu}] 🎁 Claim +{reward}")
         save_users(users)
 
         bot.send_message(

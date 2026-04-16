@@ -1,7 +1,7 @@
 import telebot
-import os
 import json
 import time
+import os
 from telebot import types
 
 TOKEN = os.getenv("TOKEN_BOT")
@@ -9,7 +9,7 @@ bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = "users.json"
 
-# ================= LOAD & SAVE =================
+# ===== LOAD & SAVE =====
 def load_users():
     try:
         with open(DATA_FILE, "r") as f:
@@ -19,17 +19,17 @@ def load_users():
 
 def save_users(data):
     with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2)
 
-# ================= KEYBOARD =================
+# ===== KEYBOARD =====
 def menu_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add("📋 Menu Utama", "🎁 Claim Saldo")
+    markup.add("📄 Menu Utama", "🎁 Claim Saldo")
     markup.add("💰 Saldo", "💸 Deposit")
-    markup.add("👑 Panel Admin")
+    markup.add("📊 Riwayat", "👑 Panel Admin")
     return markup
 
-# ================= START =================
+# ===== START =====
 @bot.message_handler(commands=['start'])
 def start(message):
     users = load_users()
@@ -39,7 +39,8 @@ def start(message):
         users[user_id] = {
             "username": message.from_user.username,
             "saldo": 0,
-            "last_claim": 0
+            "last_claim": 0,
+            "riwayat": []
         }
         save_users(users)
 
@@ -51,42 +52,44 @@ def start(message):
 
     menu(message)
 
-# ================= MENU =================
+# ===== MENU =====
 def menu(message):
     users = load_users()
     user_id = str(message.from_user.id)
 
-    username = users[user_id].get("username") or "-"
-    nama = message.from_user.first_name
-    saldo = users[user_id].get("saldo", 0)
+    if user_id not in users:
+        users[user_id] = {
+            "username": message.from_user.username,
+            "saldo": 0,
+            "last_claim": 0,
+            "riwayat": []
+        }
+        save_users(users)
+
+    saldo = users[user_id]["saldo"]
     total_user = len(users)
 
     teks = f"""
 👤 *INFO AKUN KAMU*
 
-Halo {nama} 👋
+Halo {message.from_user.first_name} 👋
 
 🆔 ID : `{user_id}`
-👤 Username : @{username}
+👤 Username : @{message.from_user.username}
 
 💰 Saldo : Rp {saldo}
 📊 Total User : {total_user}
 
-────────────
+━━━━━━━━━━━━━━
 Silakan pilih menu di bawah ya 😘
 """
 
-    bot.send_message(
-        message.chat.id,
-        teks,
-        parse_mode="Markdown",
-        reply_markup=menu_keyboard()
-    )
+    bot.send_message(message.chat.id, teks, parse_mode="Markdown")
 
-# ================= ADMIN =================
+# ===== ADD SALDO (ADMIN) =====
 @bot.message_handler(commands=['addsaldo'])
 def add_saldo(message):
-    ADMIN_ID = 6509182985  # ganti kalau perlu
+    ADMIN_ID = 6509182985
 
     if message.from_user.id != ADMIN_ID:
         bot.reply_to(message, "❌ Kamu bukan admin")
@@ -101,25 +104,28 @@ def add_saldo(message):
             bot.reply_to(message, "User tidak ditemukan")
             return
 
-        users[target_id]["saldo"] += int(jumlah)
+        jumlah = int(jumlah)
+        users[target_id]["saldo"] += jumlah
+
+        # simpan riwayat
+        users[target_id]["riwayat"].append(f"+{jumlah} (Admin)")
+
         save_users(users)
 
         bot.reply_to(message, f"✅ Berhasil tambah saldo Rp {jumlah}")
 
         bot.send_message(
             target_id,
-            f"💰 Deposit berhasil!\nSaldo kamu sekarang: Rp {users[target_id]['saldo']}"
+            f"💰 Saldo ditambahkan admin\nJumlah: Rp {jumlah}\nSaldo sekarang: Rp {users[target_id]['saldo']}"
         )
 
     except:
-        bot.reply_to(message, "Format salah!\nContoh: /addsaldo 123456789 10000")
+        bot.reply_to(message, "Format salah!\n/addsaldo 123456789 10000")
 
-# ================= HANDLE BUTTON =================
+# ===== HANDLE BUTTON =====
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
-    if "history" not in users[user_id]:
-    users[user_id]["history"] = []
-    text = message.text.strip()
+    text = message.text
     users = load_users()
     user_id = str(message.from_user.id)
 
@@ -127,21 +133,22 @@ def handle_message(message):
         users[user_id] = {
             "username": message.from_user.username,
             "saldo": 0,
-            "last_claim": 0
+            "last_claim": 0,
+            "riwayat": []
         }
         save_users(users)
 
-    # MENU
-    if text == "📋 Menu Utama":
+    # ===== MENU =====
+    if text == "📄 Menu Utama":
         menu(message)
 
-    # CLAIM
+    # ===== CLAIM =====
     elif text == "🎁 Claim Saldo":
         now = int(time.time())
-        last_claim = users[user_id].get("last_claim", 0)
+        last = users[user_id].get("last_claim", 0)
 
-        if now - last_claim < 86400:
-            sisa = 86400 - (now - last_claim)
+        if now - last < 86400:
+            sisa = 86400 - (now - last)
             jam = sisa // 3600
             menit = (sisa % 3600) // 60
 
@@ -154,35 +161,37 @@ def handle_message(message):
         reward = 200
         users[user_id]["saldo"] += reward
         users[user_id]["last_claim"] = now
-        waktu = datetime.datetime.now().strftime("%d/%m %H:%M")
-users[user_id]["history"].append(f"[{waktu}] 🎁 Claim +{reward}")
+
+        # riwayat
+        users[user_id]["riwayat"].append(f"+{reward} (Claim)")
+
         save_users(users)
 
         bot.send_message(
             message.chat.id,
-            f"🎁 Kamu dapat {reward} saldo! 💰"
+            f"🎁 Kamu dapat Rp {reward} 😘"
         )
 
-        menu(message)
-
-    # SALDO
+    # ===== SALDO =====
     elif text == "💰 Saldo":
-        saldo = users[user_id].get("saldo", 0)
+        saldo = users[user_id]["saldo"]
+
         bot.send_message(
             message.chat.id,
             f"💰 Saldo kamu: Rp {saldo}"
         )
 
-    # DEPOSIT
+    # ===== DEPOSIT =====
     elif text == "💸 Deposit":
         bot.send_message(
             message.chat.id,
-            """💸 *DEPOSIT SALDO*
+            """
+💸 *DEPOSIT SALDO*
 
 Silakan transfer ke:
 
 🏦 DANA : 08xxxxxxxxxx
-🏦 OVO  : 08xxxxxxxxxx
+🏦 OVO : 08xxxxxxxxxx
 
 📌 Minimal deposit: Rp 5.000
 
@@ -191,5 +200,26 @@ Setelah transfer, kirim bukti ke admin ya 😘
             parse_mode="Markdown"
         )
 
-# ================= RUN =================
+    # ===== RIWAYAT =====
+    elif text == "📊 Riwayat":
+        riwayat = users[user_id].get("riwayat", [])
+
+        if not riwayat:
+            bot.send_message(message.chat.id, "Belum ada transaksi 😢")
+            return
+
+        teks = "📊 *Riwayat Transaksi*\n\n"
+        for r in riwayat[-10:]:
+            teks += f"• {r}\n"
+
+        bot.send_message(message.chat.id, teks, parse_mode="Markdown")
+
+    # ===== ADMIN =====
+    elif text == "👑 Panel Admin":
+        if message.from_user.id == 6509182985:
+            bot.send_message(message.chat.id, "Halo admin 😎")
+        else:
+            bot.send_message(message.chat.id, "❌ Bukan admin")
+
+# ===== RUN =====
 bot.infinity_polling()
